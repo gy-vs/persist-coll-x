@@ -38,6 +38,7 @@ import {
 
 import { Map } from './Map';
 import { OrderedMap } from './OrderedMap';
+import { List } from './List';
 
 export class ToKeyedSequence extends KeyedSeq {
   constructor(indexed, useKeys) {
@@ -496,6 +497,79 @@ export function sliceFactory(collection, begin, end, useKeys) {
   };
 
   return sliceSeq;
+}
+
+export function chunkFactory(collection, size) {
+  if (!Number.isInteger(size) || size <= 0) {
+    throw new RangeError('Invalid chunk size: ' + size);
+  }
+
+  const isKeyedCollection = isKeyed(collection);
+  const sourceSize = collection.size;
+  const chunkedSequence = Object.create(IndexedSeq.prototype);
+  chunkedSequence.size =
+    sourceSize === undefined ? undefined : Math.ceil(sourceSize / size);
+
+  const materializeChunk = entries =>
+    isKeyedCollection
+      ? OrderedMap(entries)
+      : List(entries.map(entry => entry[1]));
+
+  chunkedSequence.__iterateUncached = function (fn, reverse) {
+    if (reverse && (sourceSize === undefined || sourceSize === Infinity)) {
+      return this.cacheResult().__iterate(fn, reverse);
+    }
+    // While iterating in reverse the first chunk yielded is the (possibly
+    // partial) trailing chunk.
+    let groupSize = reverse ? sourceSize % size || size : size;
+    let iterations = 0;
+    let chunk = [];
+    const flush = () => {
+      if (chunk.length) {
+        if (reverse) {
+          chunk.reverse();
+        }
+        const entries = chunk;
+        chunk = [];
+        groupSize = size;
+        iterations++;
+        return fn(materializeChunk(entries), iterations - 1, this) !== false;
+      }
+      return true;
+    };
+    collection.__iterate((v, k) => {
+      chunk.push([k, v]);
+      return chunk.length < groupSize || flush();
+    }, reverse);
+    flush();
+    return iterations;
+  };
+
+  chunkedSequence.__iteratorUncached = function (type, reverse) {
+    if (reverse && (sourceSize === undefined || sourceSize === Infinity)) {
+      return this.cacheResult().__iterator(type, reverse);
+    }
+    const iterator = collection.__iterator(ITERATE_ENTRIES, reverse);
+    let chunkIndex = 0;
+    let groupSize = reverse ? sourceSize % size || size : size;
+    return new Iterator(() => {
+      const entries = [];
+      let entry;
+      while (entries.length < groupSize && !(entry = iterator.next()).done) {
+        entries.push(entry.value);
+      }
+      if (entries.length === 0) {
+        return iteratorDone();
+      }
+      if (reverse) {
+        entries.reverse();
+      }
+      groupSize = size;
+      return iteratorValue(type, chunkIndex++, materializeChunk(entries));
+    });
+  };
+
+  return chunkedSequence;
 }
 
 export function takeWhileFactory(collection, predicate, context) {

@@ -54,6 +54,7 @@ import {
   countByFactory,
   groupByFactory,
   sliceFactory,
+  chunkFactory,
   takeWhileFactory,
   skipWhileFactory,
   concatFactory,
@@ -281,6 +282,10 @@ mixin(Collection, {
 
   butLast() {
     return this.slice(0, -1);
+  },
+
+  chunk(size) {
+    return chunkFactory(this, size);
   },
 
   isEmpty() {

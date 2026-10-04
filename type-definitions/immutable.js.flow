@@ -369,6 +369,8 @@ declare class KeyedCollection<K, +V> extends Collection<K, V> {
 
   flatten(depth?: number): KeyedCollection<any, any>;
   flatten(shallow?: boolean): KeyedCollection<any, any>;
+
+  chunk(size: number): IndexedSeq<OrderedMap<K, V>>;
 }
 
 Collection.Keyed = KeyedCollection;
@@ -516,6 +518,8 @@ declare class IndexedCollection<+T> extends Collection<number, T> {
 
   flatten(depth?: number): IndexedCollection<any>;
   flatten(shallow?: boolean): IndexedCollection<any>;
+
+  chunk(size: number): IndexedSeq<List<T>>;
 }
 
 declare class SetCollection<+T> extends Collection<T, T> {
@@ -556,6 +560,8 @@ declare class SetCollection<+T> extends Collection<T, T> {
 
   flatten(depth?: number): SetCollection<any>;
   flatten(shallow?: boolean): SetCollection<any>;
+
+  chunk(size: number): IndexedSeq<List<T>>;
 }
 
 declare function isSeq(maybeSeq: mixed): boolean %checks(maybeSeq instanceof
@@ -622,6 +628,8 @@ declare class KeyedSeq<K, +V> extends Seq<K, V> mixins KeyedCollection<K, V> {
 
   flatten(depth?: number): KeyedSeq<any, any>;
   flatten(shallow?: boolean): KeyedSeq<any, any>;
+
+  chunk(size: number): IndexedSeq<OrderedMap<K, V>>;
 }
 
 declare class IndexedSeq<+T>
@@ -747,6 +755,8 @@ declare class IndexedSeq<+T>
     e: Iterable<E>,
     ..._: []
   ): IndexedSeq<R>;
+
+  chunk(size: number): IndexedSeq<List<T>>;
 }
 
 declare class SetSeq<+T> extends Seq<T, T> mixins SetCollection<T> {
@@ -781,6 +791,8 @@ declare class SetSeq<+T> extends Seq<T, T> mixins SetCollection<T> {
 
   flatten(depth?: number): SetSeq<any>;
   flatten(shallow?: boolean): SetSeq<any>;
+
+  chunk(size: number): IndexedSeq<List<T>>;
 }
 
 declare class UpdatableInCollection<K, +V> {

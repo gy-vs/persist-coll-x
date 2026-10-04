@@ -888,7 +888,7 @@ declare namespace Immutable {
   }
 
   // Loosely based off of this work.
-  // 
+  //
 
   /** @ignore */
   type GetMapType<S> = S extends MapOf<infer T> ? T : S;
@@ -3230,6 +3230,15 @@ declare namespace Immutable {
       ): [this, this];
 
       /**
+       * Returns a lazy `Seq.Indexed` of `OrderedMap`s, each containing at most
+       * `size` entries, preserving the original keys, values and iteration
+       * order.
+       *
+       * `size` must be a positive integer, otherwise a `RangeError` is thrown.
+       */
+      chunk(size: number): Seq.Indexed<OrderedMap<K, V>>;
+
+      /**
        * @see Collection.Keyed.flip
        */
       flip(): Seq.Keyed<V, K>;
@@ -3342,6 +3351,18 @@ declare namespace Immutable {
         predicate: (this: C, value: T, index: number, iter: this) => unknown,
         context?: C
       ): [this, this];
+
+      /**
+       * Returns a lazy `Seq.Indexed` of `List`s, each containing at most
+       * `size` values. The final chunk may contain fewer than `size` values.
+       *
+       * Chunking is lazy: only the values backing the chunks that are consumed
+       * are iterated. For example, `Range(0, Infinity).chunk(3).take(2)`
+       * completes without evaluating the infinite source.
+       *
+       * `size` must be a positive integer, otherwise a `RangeError` is thrown.
+       */
+      chunk(size: number): Seq.Indexed<List<T>>;
 
       /**
        * Returns a Seq "zipped" with the provided collections.
@@ -3517,6 +3538,17 @@ declare namespace Immutable {
         predicate: (this: C, value: T, key: T, iter: this) => unknown,
         context?: C
       ): [this, this];
+
+      /**
+       * Returns a lazy `Seq.Indexed` of `List`s, each containing at most
+       * `size` values. The final chunk may contain fewer than `size` values.
+       *
+       * Chunking is lazy: only the values backing the chunks that are consumed
+       * are iterated.
+       *
+       * `size` must be a positive integer, otherwise a `RangeError` is thrown.
+       */
+      chunk(size: number): Seq.Indexed<List<T>>;
 
       [Symbol.iterator](): IterableIterator<T>;
     }
@@ -3867,6 +3899,22 @@ declare namespace Immutable {
         context?: C
       ): [this, this];
 
+      /**
+       * Returns a lazy `Seq.Indexed` of `OrderedMap`s, each containing at most
+       * `size` entries, preserving the original keys, values and iteration
+       * order. The final chunk may contain fewer than `size` entries.
+       *
+       * <!-- runkit:activate -->
+       * ```js
+       * const { OrderedMap } = require('immutable')
+       * OrderedMap({ a: 1, b: 2, c: 3, d: 4 }).chunk(2)
+       * // Seq [ OrderedMap { "a": 1, "b": 2 }, OrderedMap { "c": 3, "d": 4 } ]
+       * ```
+       *
+       * `size` must be a positive integer, otherwise a `RangeError` is thrown.
+       */
+      chunk(size: number): Seq.Indexed<OrderedMap<K, V>>;
+
       [Symbol.iterator](): IterableIterator<[K, V]>;
     }
 
@@ -3938,6 +3986,24 @@ declare namespace Immutable {
        * Seq.Keyed of those entries.
        */
       fromEntrySeq(): Seq.Keyed<unknown, unknown>;
+
+      /**
+       * Returns a lazy `Seq.Indexed` of `List`s, each containing at most
+       * `size` values. The final chunk may contain fewer than `size` values.
+       *
+       * Chunking is lazy: only the values backing the chunks that are consumed
+       * are iterated.
+       *
+       * <!-- runkit:activate -->
+       * ```js
+       * const { Range } = require('immutable')
+       * Range(0, 7).chunk(3)
+       * // Seq [ List [ 0, 1, 2 ], List [ 3, 4, 5 ], List [ 6 ] ]
+       * ```
+       *
+       * `size` must be a positive integer, otherwise a `RangeError` is thrown.
+       */
+      chunk(size: number): Seq.Indexed<List<T>>;
 
       // Combination
 
@@ -4293,6 +4359,18 @@ declare namespace Immutable {
         predicate: (this: C, value: T, key: T, iter: this) => unknown,
         context?: C
       ): [this, this];
+
+      /**
+       * Returns a lazy `Seq.Indexed` of `List`s, each containing at most
+       * `size` values in the iteration order of this Collection. The final
+       * chunk may contain fewer than `size` values.
+       *
+       * Chunking is lazy: only the values backing the chunks that are consumed
+       * are iterated.
+       *
+       * `size` must be a positive integer, otherwise a `RangeError` is thrown.
+       */
+      chunk(size: number): Seq.Indexed<List<T>>;
 
       [Symbol.iterator](): IterableIterator<T>;
     }
