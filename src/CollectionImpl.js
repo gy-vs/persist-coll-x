@@ -64,6 +64,7 @@ import {
   maxFactory,
   zipWithFactory,
   partitionFactory,
+  chunkFactory,
 } from './Operations';
 import { getIn } from './methods/getIn';
 import { hasIn } from './methods/hasIn';
@@ -281,6 +282,10 @@ mixin(Collection, {
 
   butLast() {
     return this.slice(0, -1);
+  },
+
+  chunk(size) {
+    return chunkFactory(this.toSeq(), size);
   },
 
   isEmpty() {

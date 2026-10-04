@@ -38,6 +38,7 @@ import {
 
 import { Map } from './Map';
 import { OrderedMap } from './OrderedMap';
+import { List } from './List';
 
 export class ToKeyedSequence extends KeyedSeq {
   constructor(indexed, useKeys) {
@@ -729,6 +730,97 @@ export function interposeFactory(collection, separator) {
     });
   };
   return interposedSequence;
+}
+
+export function chunkFactory(collection, size) {
+  if (!Number.isInteger(size) || size < 1) {
+    throw new RangeError(
+      'Cannot chunk a Collection by a size that is not a positive integer: ' +
+        size
+    );
+  }
+  const chunkedSequence = Object.create(IndexedSeq.prototype);
+  chunkedSequence._iter = collection;
+  chunkedSequence.size =
+    collection.size === undefined
+      ? undefined
+      : Math.ceil(collection.size / size);
+  chunkedSequence.get = function (index, notSetValue) {
+    const resultSize = this.size;
+    if (resultSize === undefined) {
+      // Negative indices and unknown bounds may require the whole Seq, so fall
+      // back to the generic indexed lookup.
+      return IndexedCollection.prototype.get.call(this, index, notSetValue);
+    }
+    index = wrapIndex(this, index);
+    if (index < 0 || index >= resultSize) {
+      return notSetValue;
+    }
+    return chunkFor(collection, size, index);
+  };
+  chunkedSequence.__iterateUncached = function (fn, reverse) {
+    if (reverse) {
+      return this.cacheResult().__iterate(fn, reverse);
+    }
+    const isKeyedCollection = isKeyed(collection);
+    let buffer = [];
+    let index = 0;
+    let stopped = false;
+    collection.__iterate((v, k) => {
+      buffer.push(isKeyedCollection ? [k, v] : v);
+      if (buffer.length === size) {
+        const chunk = chunkFromBuffer(collection, buffer);
+        buffer = [];
+        if (fn(chunk, index++, this) === false) {
+          stopped = true;
+          return false;
+        }
+      }
+    });
+    if (!stopped && buffer.length) {
+      fn(chunkFromBuffer(collection, buffer), index++, this);
+    }
+    return index;
+  };
+  chunkedSequence.__iteratorUncached = function (type, reverse) {
+    if (reverse) {
+      return this.cacheResult().__iterator(type, reverse);
+    }
+    const isKeyedCollection = isKeyed(collection);
+    const iterator = collection.__iterator(ITERATE_ENTRIES, false);
+    let buffer = [];
+    let index = 0;
+    return new Iterator(() => {
+      let step;
+      while (!(step = iterator.next()).done) {
+        const entry = step.value;
+        buffer.push(isKeyedCollection ? [entry[0], entry[1]] : entry[1]);
+        if (buffer.length === size) {
+          const chunk = chunkFromBuffer(collection, buffer);
+          buffer = [];
+          return iteratorValue(type, index++, chunk);
+        }
+      }
+      if (buffer.length) {
+        const chunk = chunkFromBuffer(collection, buffer);
+        buffer = [];
+        return iteratorValue(type, index++, chunk);
+      }
+      return iteratorDone();
+    });
+  };
+  return chunkedSequence;
+}
+
+function chunkFromBuffer(collection, buffer) {
+  return isKeyed(collection) ? new OrderedMap(buffer) : new List(buffer);
+}
+
+function chunkFor(collection, chunkSize, chunkIndex) {
+  return chunkFromBuffer(
+    collection,
+    collection.slice(chunkIndex * chunkSize, (chunkIndex + 1) * chunkSize)
+  );
 }
 
 export function sortFactory(collection, comparator, mapper) {
